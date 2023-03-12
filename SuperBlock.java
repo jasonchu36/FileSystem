@@ -18,6 +18,7 @@ class Superblock {
         
         if (totalBlocks == diskSize && totalInodes > 0  && freeList >= 2) {
             //return;
+            
         } else {
             totalBlocks = diskSize;
             format(defaultInodeBlocks);
