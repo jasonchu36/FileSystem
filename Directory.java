@@ -46,6 +46,7 @@ public class Directory {
     public short ialloc(String filename) {
         // filename is the one of a file to be created.
         // allocates a new inode number for this filename
+        
     }
 
     public boolean ifree(short iNumber) {
