@@ -50,8 +50,8 @@ class Superblock {
             {
                 Block[j] = 0;
             }
-            SysLib.int2bytes(i + 1, theBlock, 0);
-            SysLib.rawwrite(i, theBlock);
+            SysLib.int2bytes(i + 1, Block, 0);
+            SysLib.rawwrite(i, Block);
         }
         this.sync();
     }
