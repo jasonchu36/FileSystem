@@ -178,7 +178,7 @@ public class Kernel
 	    case OPEN:    // to be implemented in project
 			if ((myTcb = scheduler.getmyTcb()) != null) {
 				String[] s = (String[]) args;
-				FileTableEntry ent = fs.open(s[0], s[1]);
+				FileTableEntry ent = FileSystem.open(s[0], s[1]);
 				int fd = myTcb.getFd(ent);
 				return fd; 
 			}else{
@@ -187,21 +187,21 @@ public class Kernel
 		return OK;
 	    case CLOSE:   // to be implemented in project
 			if ((myTcb = scheduler.getmyTcb()) != null) {
-				int result = fs.close(param);
+				int result = FileSystem.close(param);
 				myTcb.returnFd(param);
-				return result
+				return result;
 			}else{
 				return ERROR;
 			}
 	    case SIZE:    // to be implemented in project
-			return fs.size(param);
+			return FileSystem.size(param);
 	    case SEEK:    // to be implemented in project
-			return fs.seek(param, (int)args);
+			return FileSystem.seek(param, (int)args);
 		return OK;	
 	    case FORMAT:  // to be implemented in project
-			return fs.format(param);
+			return FileSystem.format(param);
 	    case DELETE:  // to be implemented in project
-		return fs.delete((String)args);
+		return FileSystem.delete((String)args);
 	    }
 	    return ERROR;
 	case INTERRUPT_DISK: // Disk interrupts
