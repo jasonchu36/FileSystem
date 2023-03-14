@@ -18,8 +18,8 @@ public class FileSystem {
             iNumber = (fnames.equal("/") ? 0 : dir.namei(filename));
             if (iNumber >= 0 ) {
                 inode = new Inode (iNumber);
-                if (mode.compareTo("r")) {
-                    if (inode.flag == ) { // == read. nothing needs to happen
+                if (mode.compareTo("r") == 0) {
+                    if (inode.flag == 0) { // == read. nothing needs to happen
                         break;
                     } else if (inode.flag == ) // to be deleted
                     {
@@ -31,9 +31,16 @@ public class FileSystem {
                     }
                 } else if (mode.compareTo( "w" )) {
                     // do something 
+                    
                 }
             }
+
         }
+        inode.count++;
+        inode.toDisk(iNumber);
+        FileTableEntry e = new FileTableEntry( inode,iNumber,mode);
+        tables.addElement(e);
+        return e;
     }
     public synchronized boolean ffree( FileTableEntry e ) {
         // receive a file table entry reference
@@ -42,6 +49,7 @@ public class FileSystem {
         // return true if this file table entry found in my table
     }
     public synchronized boolean fempty( ) {
-        return table.isEmpty( ); // return if table is empty
+        // return if table is empty
+        return table.isEmpty( ); 
     } // should be called before starting a format
 }

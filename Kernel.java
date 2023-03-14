@@ -87,14 +87,22 @@ public class Kernel
 		return sysExec( ( String[] )args );
 	    case WAIT:
 		// get the current thread id
+		myTcb = scheduler.getMyTcb( );
+		int tid = myTcb.getTid( );
 		// let the current thread sleep in waitQueue under the 
 		// condition = this thread id
+		waitQueue.enqueueAndSleep(tid);
 		return OK; // return a child thread id who woke me up
 	    case EXIT:
 		// get the current thread's parent id
+		myTcb = scheduler.getMyTcb( );
+		tid = myTcb.getTid( );
+		int pid = myTcb.getPid( );		
 		// search waitQueue for and wakes up the thread under the
 		// condition = the current thread's parent id
+		waitQueue.dequeueAndWakeup(pid);
 		// tell the Scheduler to delete the current thread (since it is exiting)
+		scheduler.deleteThread();
 		return OK;
 	    case SLEEP:   // sleep a given period of milliseconds
 		scheduler.sleepThread( param ); // param = milliseconds
@@ -168,22 +176,37 @@ public class Kernel
 		cache.flush( );
 		return OK;
 	    case OPEN:    // to be implemented in project
+			if ((myTcb = scheduler.getmyTcb()) != null) {
+				String[] s = (String[]) args;
+				FileTableEntry ent = fs.open(s[0], s[1]);
+				int fd = myTcb.getFd(ent);
+				return fd; 
+			}else{
+				return ERROR;
+			}			
 		return OK;
 	    case CLOSE:   // to be implemented in project
-		return OK;
+			if ((myTcb = scheduler.getmyTcb()) != null) {
+				int result = fs.close(param);
+				myTcb.returnFd(param);
+				return result
+			}else{
+				return ERROR;
+			}
 	    case SIZE:    // to be implemented in project
-		return OK;
+			return fs.size(param);
 	    case SEEK:    // to be implemented in project
-		return OK;
+			return fs.seek(param, (int)args);
+		return OK;	
 	    case FORMAT:  // to be implemented in project
-		return OK;
+			return fs.format(param);
 	    case DELETE:  // to be implemented in project
-		return OK;
+		return fs.delete((String)args);
 	    }
 	    return ERROR;
 	case INTERRUPT_DISK: // Disk interrupts
 	    // wake up the thread waiting for a service completion
-	    //ioQueue.dequeueAndWakeup( COND_DISK_FIN );
+	    ioQueue.dequeueAndWakeup( COND_DISK_FIN );
 
 	    // wake up the thread waiting for a request acceptance
 	    //ioQueue.dequeueAndWakeup( COND_DISK_REQ );

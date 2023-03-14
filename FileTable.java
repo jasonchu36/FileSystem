@@ -51,6 +51,7 @@ public class FileTable {
     // return true if this file table entry found in my table
     }
     public synchronized boolean fempty( ) {
-    return table.isEmpty( ); // return if table is empty
+    // return if table is empty
+    return table.isEmpty( ); 
     } // should be called before starting a format
     }
