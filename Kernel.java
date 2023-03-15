@@ -176,7 +176,7 @@ public class Kernel
 		cache.flush( );
 		return OK;
 	    case OPEN:    // to be implemented in project
-			if ((myTcb = scheduler.getmyTcb()) != null) {
+			if ((myTcb = scheduler.getMyTcb()) != null) {
 				String[] s = (String[]) args;
 				FileTableEntry ent = FileSystem.open(s[0], s[1]);
 				int fd = myTcb.getFd(ent);
@@ -194,14 +194,13 @@ public class Kernel
 				return ERROR;
 			}
 	    case SIZE:    // to be implemented in project
-			return FileSystem.size(param);
+			return FileSystem.fsize(param);
 	    case SEEK:    // to be implemented in project
-			return FileSystem.seek(param, (int)args);
-		return OK;	
+			return FileSystem.seek(param, (int)args) ? OK : ERROR;;	
 	    case FORMAT:  // to be implemented in project
-			return FileSystem.format(param);
+			return FileSystem.format(param) ? OK : ERROR;
 	    case DELETE:  // to be implemented in project
-		return FileSystem.delete((String)args);
+		return FileSystem.delete((String)args) ? OK : ERROR;
 	    }
 	    return ERROR;
 	case INTERRUPT_DISK: // Disk interrupts
@@ -209,7 +208,7 @@ public class Kernel
 	    ioQueue.dequeueAndWakeup( COND_DISK_FIN );
 
 	    // wake up the thread waiting for a request acceptance
-	    //ioQueue.dequeueAndWakeup( COND_DISK_REQ );
+	    ioQueue.dequeueAndWakeup( COND_DISK_REQ );
 
 	    return OK;
 	case INTERRUPT_IO:   // other I/O interrupts (not implemented)
