@@ -70,13 +70,14 @@ public class FileTable {
                     break;
                 case 4: // delete
                     e.inode.flag = 3;
-                    break;}
+                    break;
+                }
             
             e.inode.toDisk(e.iNumber);
             notify();
             return true;
         }
-        
+        return false;
     }
     public synchronized boolean fempty( ) {
         // return if table is empty

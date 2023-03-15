@@ -49,6 +49,8 @@ public class Kernel
     private static Scheduler scheduler;
     private static Disk disk;
     private static Cache cache;
+	private static FileSystem FileSystem;
+
 
     // Synchronized Queues
     private static SyncQueue waitQueue;  // for threads to wait for their child
@@ -71,7 +73,7 @@ public class Kernel
 		// instantiate and start a scheduler
 		scheduler = new Scheduler( ); 
 		scheduler.start( );
-		
+		FileSystem = new FileSystem(1000 );
 		// instantiate and start a disk
 		disk = new Disk( 1000 );
 		disk.start( );
@@ -176,31 +178,48 @@ public class Kernel
 		cache.flush( );
 		return OK;
 	    case OPEN:    // to be implemented in project
-			if ((myTcb = scheduler.getMyTcb()) != null) {
-				String[] s = (String[]) args;
-				FileTableEntry ent = FileSystem.open(s[0], s[1]);
-				int fd = myTcb.getFd(ent);
-				return fd; 
-			}else{
-				return ERROR;
-			}			
-		return OK;
+			TCB myOpen;
+			 if ( ( myOpen = scheduler.getMyTcb( ) ) != null ) {
+                     String[] s = ( String[] )args;
+                     return myOpen.getFd( FileSystem.open( s[0], s[1] ) );
+			 }
+                    return ERROR;
 	    case CLOSE:   // to be implemented in project
-			if ((myTcb = scheduler.getMyTcb()) != null) {
-				int result = FileSystem.close(param);
-				myTcb.returnFd(param);
-				return result;
-			}else{
-				return ERROR;
-			}
+			TCB myClose;
+			if ((myClose = scheduler.getMyTcb()) == null) {
+                return ERROR;
+            }
+            final FileTableEntry ftEntC = myClose.getFtEnt(param);
+            if (ftEntC == null || !FileSystem.close(ftEntC)) {
+                return ERROR;
+            }
+            if (myClose.returnFd(param) != ftEntC) {
+                return ERROR;
+            }
+			return OK;
 	    case SIZE:    // to be implemented in project
-			return FileSystem.fsize(param);
+			TCB mySize;
+			if ((mySize = scheduler.getMyTcb()) != null) {
+				FileTableEntry ftEntS = mySize.getFtEnt(param);
+				if (ftEntS != null) {
+					return FileSystem.fsize(ftEntS);
+				}
+			}
+			return ERROR;
 	    case SEEK:    // to be implemented in project
-			return FileSystem.seek(param, (int)args) ? OK : ERROR;;	
-	    case FORMAT:  // to be implemented in project
-			return FileSystem.format(param) ? OK : ERROR;
-	    case DELETE:  // to be implemented in project
-		return FileSystem.delete((String)args) ? OK : ERROR;
+			TCB mySeek;
+			if ((mySeek = scheduler.getMyTcb()) != null) {
+				int[] seekArgs = (int[]) args;
+				FileTableEntry ftEntS = mySeek.getFtEnt(param);
+				if (ftEntS != null) {
+					return FileSystem.seek(ftEntS, seekArgs[0], seekArgs[1]);
+				}
+			}
+			return ERROR;	
+	    	case FORMAT:  // to be implemented in project
+				return (FileSystem.format(param) == true) ? OK : ERROR;
+	    	case DELETE:  // to be implemented in project
+				return (FileSystem.delete((String)args) == true) ? OK : ERROR;
 	    }
 	    return ERROR;
 	case INTERRUPT_DISK: // Disk interrupts
