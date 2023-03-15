@@ -22,18 +22,24 @@ public class FileTable {
             if (iNumber >= 0 ) {
                 inode = new Inode (iNumber);
                 if (mode.compareTo("r")) {
-                    if (inode.flag == ) { // == read. nothing needs to happen
+                    if (inode.flag == 2) { // == read. nothing needs to happen
                         break;
-                    } else if (inode.flag == ) // to be deleted
-                    {
+                    } else if (inode.flag == 3) { // == write
                         try{
                             wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
+                    } else if (inode.flag == 4) // to be deleted
+                    {
+                       iNumber = -1;
+                       return null; 
                     }
                 } else if (mode.compareTo( "w" )) {
-                    // do something 
+                    iNumber = directory.iAlloc(filename);
+                    inode = new Inode(iNumber);
+                    iNode.Flag = 2;
+                    break;
                 }
             }
         }
@@ -49,9 +55,31 @@ public class FileTable {
     // save the corresponding inode to the disk
     // free this file table entry.
     // return true if this file table entry found in my table
+        if (table.removeElement(e)) {
+            Inode inode = e.inode;
+            --inode.count;
+            switch(e.inode.flag) {
+                case 1: // read
+                    e.inode.flag = 0;
+                    break;
+                case 2: // write
+                    e.inode.flag = 0;
+                    break;
+                case 3: // read/write
+                    e.inode.flag = 3;
+                    break;
+                case 4: // delete
+                    e.inode.flag = 3;
+                    break;}
+            
+            e.inode.toDisk(e.iNumber);
+            notify();
+            return true;
+        }
+        
     }
     public synchronized boolean fempty( ) {
-    // return if table is empty
-    return table.isEmpty( ); 
-    } // should be called before starting a format
+        // return if table is empty
+        return table.isEmpty( ); 
+        } // should be called before starting a format
     }
