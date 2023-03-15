@@ -1,5 +1,4 @@
 public class FileSystem {
-    private Vector table; // the actual entity of this file table
     private Directory dir; // the root directory
     private SuperBlock superblock;
     private FileTable filetable;

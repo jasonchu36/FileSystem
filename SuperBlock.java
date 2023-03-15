@@ -1,6 +1,6 @@
 import java.util.*;
 
-class Superblock {
+class SuperBlock {
     public int totalBlocks; // the number of disk blocks
     public int totalInodes; // the number of inodes
     public int freeList; // the block number of the free list's head
@@ -42,7 +42,7 @@ class Superblock {
             node.flag = 0;
             node.toDisk(i);
         }
-        this.freeList = 2 + totalInodes * 32 / 512
+        this.freeList = 2 + totalInodes * 32 / 512;
          for(int i = this.freeList; i < this.totalBlocks; i++)
         {
             byte[] Block = new byte[512];
@@ -59,7 +59,7 @@ class Superblock {
     public int getFreeBlock() {
         // get a new free block from the freelist
         int freeBlockNumber = this.freeList;
-        if (freeBlockNumber !- -1) {
+        if (freeBlockNumber != -1) {
             byte[] Block = new byte[512];
             SysLib.rawread(freeBlockNumber, Block);
             this.freeList = SysLib.bytes2int(Block, 0);
@@ -71,8 +71,8 @@ class Superblock {
 
     public boolean returnBlock( int oldBlockNumber ) {
         // return this old block to the free list. The list can be a stack.
+        byte[] Block = new byte[512];
         if(oldBlockNumber >= 0) {
-            byte[] Block = new byte[512];
             for (int i = 0; i < 512; i++) {
                 Block[i] = 0;
             }

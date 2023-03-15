@@ -17,11 +17,11 @@ public class FileTable {
         short iNumber = -1;
         Inode inode = null;
 
-        while (true){
-            iNumber = (fnames.equal("/") ? 0 : dir.namei(filename));
+        while (true) {
+            iNumber = (filename.equals("/") ? 0 : dir.namei(filename));
             if (iNumber >= 0 ) {
                 inode = new Inode (iNumber);
-                if (mode.compareTo("r")) {
+                if (mode.compareTo("r") == 0) {
                     if (inode.flag == 2) { // == read. nothing needs to happen
                         break;
                     } else if (inode.flag == 3) { // == write
@@ -35,10 +35,10 @@ public class FileTable {
                        iNumber = -1;
                        return null; 
                     }
-                } else if (mode.compareTo( "w" )) {
-                    iNumber = directory.iAlloc(filename);
+                } else if (mode.compareTo( "w" ) != 0) {
+                    iNumber = dir.ialloc(filename);
                     inode = new Inode(iNumber);
-                    iNode.Flag = 2;
+                    inode.flag = 2;
                     break;
                 }
             }

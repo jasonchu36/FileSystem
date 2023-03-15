@@ -186,7 +186,7 @@ public class Kernel
 			}			
 		return OK;
 	    case CLOSE:   // to be implemented in project
-			if ((myTcb = scheduler.getmyTcb()) != null) {
+			if ((myTcb = scheduler.getMyTcb()) != null) {
 				int result = FileSystem.close(param);
 				myTcb.returnFd(param);
 				return result;
