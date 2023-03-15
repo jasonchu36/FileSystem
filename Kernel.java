@@ -49,6 +49,8 @@ public class Kernel
     private static Scheduler scheduler;
     private static Disk disk;
     private static Cache cache;
+
+	// File System
 	private static FileSystem FileSystem;
 
 
@@ -73,17 +75,20 @@ public class Kernel
 		// instantiate and start a scheduler
 		scheduler = new Scheduler( ); 
 		scheduler.start( );
-		FileSystem = new FileSystem(1000 );
+		
 		// instantiate and start a disk
 		disk = new Disk( 1000 );
-		disk.start( );
+        disk.start( );
 
 		// instantiate a cache memory
-		cache = new Cache( disk.blockSize, 10 );
-
+		cache = new Cache( Disk.blockSize, 10 );
+		
 		// instantiate synchronized queues
 		ioQueue = new SyncQueue( );
 		waitQueue = new SyncQueue( scheduler.getMaxThreads( ) );
+
+		FileSystem = new FileSystem( 1000 );
+
 		return OK;
 	    case EXEC:
 		return sysExec( ( String[] )args );
