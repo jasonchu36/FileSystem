@@ -9,9 +9,9 @@ public class FileSystem {
         filetable = new FileTable(dir);
 
         // read the "/" file from disk
-        FileTableEntry dirEnt = open("/", "r");
+        FileTableEntry dirEnt = this.open("/", "r");
         int dirSize = fsize(dirEnt);
-
+        System.out.println("dirSize");
         if (dirSize > 0) {
             // directory has some data
             byte[] dirData = new byte[dirSize];
@@ -45,13 +45,16 @@ public class FileSystem {
             return bytes;
         }
     }
+
     boolean format(final int n) {
-        while (!filetable.fempty()) {}
+        while (!filetable.fempty()) {
+        }
         superblock.format(n);
         dir = new Directory(superblock.totalInodes);
         filetable = new FileTable(dir);
         return true;
     }
+
     public int write(FileTableEntry ftEnt, byte[] buffer) {
         if (ftEnt.mode == "r") {
             return -1;
@@ -68,10 +71,10 @@ public class FileSystem {
                         return -1;
                     } else if (point == -3) {
                         short free = (short) superblock.getFreeBlock();
-                        if(!ftEnt.inode.registerIndexBlock(free)) {
+                        if (!ftEnt.inode.registerIndexBlock(free)) {
                             return -1;
                         }
-                        if(ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, newPoint) != 0) {
+                        if (ftEnt.inode.registerTargetBlock(ftEnt.seekPtr, newPoint) != 0) {
                             return -1;
                         }
                     }
@@ -94,13 +97,14 @@ public class FileSystem {
             ftEnt.inode.toDisk(ftEnt.iNumber);
             return bytes;
         }
-        
+
     }
 
     public int fsize(FileTableEntry ftEnt) {
         assert (ftEnt != null);
         return ftEnt.inode.length;
     }
+
     private boolean deallocAllBlocks(FileTableEntry ftEnt) {
         for (int i = 0; i < ftEnt.inode.direct.length; i++) {
             if (ftEnt.inode.direct[i] != -1) {
@@ -123,8 +127,9 @@ public class FileSystem {
         ftEnt.inode.toDisk(ftEnt.iNumber);
         return true;
     }
+
     public FileTableEntry open(String filename, String mode) {
-        FileTableEntry ftEnt = this.filetable.falloc(filename, mode);
+        FileTableEntry ftEnt = filetable.falloc(filename, mode);
         if (ftEnt == null) {
             return null;
         }
@@ -135,7 +140,7 @@ public class FileSystem {
         }
         return ftEnt;
     }
-    
+
     public boolean close(FileTableEntry ftEnt) {
         synchronized (ftEnt) {
             ftEnt.count--;
@@ -145,11 +150,13 @@ public class FileSystem {
         }
         return filetable.ffree(ftEnt);
     }
+
     public boolean delete(String filename) {
         FileTableEntry open = open(filename, "w");
         short iNumber = open.iNumber;
         return close(open) && dir.ifree(iNumber);
     }
+
     int seek(FileTableEntry ftEnt, int offset, int whence) {
         synchronized (ftEnt) {
             switch (whence) {
@@ -172,11 +179,11 @@ public class FileSystem {
                     }
                     return -1;
                 }
-                
+
             }
             return ftEnt.seekPtr;
         }
-        
+
     }
 
 }

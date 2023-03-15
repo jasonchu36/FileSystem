@@ -32,6 +32,7 @@ class SuperBlock {
         SysLib.int2bytes(totalInodes, superBlock, 4);
         SysLib.int2bytes(freeList, superBlock, 8);
         SysLib.rawwrite(0, superBlock);
+        SysLib.cerr("we are in superblock sync\n");
         SysLib.cerr("Superblock syncronized\n");
     }
 

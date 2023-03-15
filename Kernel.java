@@ -86,10 +86,9 @@ public class Kernel
 		// instantiate synchronized queues
 		ioQueue = new SyncQueue( );
 		waitQueue = new SyncQueue( scheduler.getMaxThreads( ) );
-
 		FileSystem = new FileSystem( 1000 );
-
 		return OK;
+
 	    case EXEC:
 		return sysExec( ( String[] )args );
 	    case WAIT:
@@ -115,24 +114,24 @@ public class Kernel
 		scheduler.sleepThread( param ); // param = milliseconds
 		return OK;
 	    case RAWREAD: // read a block of data from disk
-		while ( disk.read( param, ( byte[] )args ) == false )
+		while ( disk.read( param, ( byte[] )args ) == false ) { ioQueue.enqueueAndSleep(COND_DISK_REQ);}
 		    ; // busy wait
-		while ( disk.testAndResetReady( ) == false )
+		while ( disk.testAndResetReady( ) == false ) { ioQueue.enqueueAndSleep(COND_DISK_FIN);}
 		    ; // busy wait
 		return OK;
 	    case RAWWRITE: // write a block of data to disk
-		while ( disk.write( param, ( byte[] )args ) == false )
+		while ( disk.write( param, ( byte[] )args ) == false ) { ioQueue.enqueueAndSleep(COND_DISK_REQ);}
 		    ; // busy wait
-		while ( disk.testAndResetReady( ) == false )
+		while ( disk.testAndResetReady( ) == false ) { ioQueue.enqueueAndSleep(COND_DISK_FIN);}
 		    ; // busy wait
 		return OK;
 	    case SYNC:     // synchronize disk data to a real file
-		while ( disk.sync( ) == false )
+		while ( disk.sync( ) == false ) { ioQueue.enqueueAndSleep(COND_DISK_REQ);}
 		    ; // busy wait
-		while ( disk.testAndResetReady( ) == false )
+		while ( disk.testAndResetReady( ) == false ) { ioQueue.enqueueAndSleep(COND_DISK_FIN);}
 		    ; // busy wait
 		return OK;
-	    case READ:
+	    case READ: {
 		switch ( param ) {
 		case STDIN:
 		    try {
@@ -153,12 +152,22 @@ public class Kernel
 			return ERROR;
 		    }
 		case STDOUT:
-		case STDERR:
+		case STDERR: {
 		    System.out.println( "threaOS: caused read errors" );
 		    return ERROR;
 		}
-		// return FileSystem.read( param, byte args[] );
-		return ERROR;
+		default: {
+				TCB myFile;
+				if ((myFile = scheduler.getMyTcb()) != null) {
+					FileTableEntry myEntry = myFile.getFtEnt(param);
+					if (myEntry != null) {
+						return FileSystem.read(myEntry, (byte[])args);
+					}
+				}
+				return ERROR;
+			}
+		}
+		}
 	    case WRITE:
 		switch ( param ) {
 		case STDIN:
@@ -170,6 +179,16 @@ public class Kernel
 		case STDERR:
 		    System.err.print( (String)args );
 		    break;
+		default: {
+				TCB myFileW;
+				if ((myFileW = scheduler.getMyTcb()) != null) {
+					FileTableEntry myEntry = myFileW.getFtEnt(param);
+					if (myEntry != null) {
+						return FileSystem.write(myEntry, (byte[])args);
+					}
+				}
+				return ERROR;
+		}
 		}
 		return OK;
 	    case CREAD:   // to be implemented in assignment 4
