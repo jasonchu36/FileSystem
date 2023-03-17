@@ -28,7 +28,7 @@ public class FileSystem {
         int bytes = 0;
         int length = buffer.length;
         synchronized (ftEnt) {
-            while (length > 0) {
+            while (length > 0 && ftEnt.seekPtr < fsize(ftEnt)) {
                 int blockNum = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
                 if (blockNum == -1) {
                     break;
@@ -36,7 +36,7 @@ public class FileSystem {
                 byte[] block = new byte[Disk.blockSize];
                 SysLib.rawread(blockNum, block);
                 int offset = ftEnt.seekPtr % Disk.blockSize;
-                int read = Math.min(Disk.blockSize - offset, length);
+                int read = Math.min(Math.min(Disk.blockSize - offset, length), fsize(ftEnt) - ftEnt.seekPtr);
                 System.arraycopy(block, offset, buffer, bytes, read);
                 ftEnt.seekPtr += read;
                 bytes += read;
