@@ -5,7 +5,6 @@ public class FileTable {
     private final static int USED = 1;
     private final static int READ = 2;
     private final static int WRITE = 3;
-    private final static int DELETE = 4;
     private Vector<FileTableEntry> table; // the actual entity of this file table
     private Directory dir; // the root directory
 
@@ -26,7 +25,6 @@ public class FileTable {
 
         while (true) {
             iNumber = (filename.equals("/") ? 0 : dir.namei(filename));
-            SysLib.cout("iNumber: " + iNumber + " mode: " + mode);
             if (iNumber >= 0) {
                 inode = new Inode(iNumber);
                 if (mode.compareTo("r") == 0) {
@@ -38,8 +36,8 @@ public class FileTable {
                         wait();
                     } catch (InterruptedException e) {
                     }
-                } else {
-
+                } else { // mode.compareTo("w") == 0 || mode.compareTo("w+") == 0
+                    
                     if ((inode.flag == UNUSED) || (inode.flag == WRITE)) {
                         inode.flag = READ;
                         break;
@@ -60,37 +58,23 @@ public class FileTable {
                 break;
             }
         }
-        inode.count++;
+    inode.count++;
     inode.toDisk(iNumber);
     FileTableEntry e = new FileTableEntry(inode, iNumber, mode);
     table.addElement(e);
     return e;
     }
 
-    public synchronized boolean ffree(FileTableEntry e) {
+    public synchronized boolean ffree(FileTableEntry e) { 
         // receive a file table entry reference
         // save the corresponding inode to the disk
         // free this file table entry.
         // return true if this file table entry found in my table
         if (table.removeElement(e)) {
-            Inode inode = e.inode;
-            --inode.count;
-            switch (e.inode.flag) {
-                case 1: // read
-                    e.inode.flag = 0;
-                    break;
-                case 2: // write
-                    e.inode.flag = 0;
-                    break;
-                case 3: // read/write
-                    e.inode.flag = 3;
-                    break;
-                case 4: // delete
-                    e.inode.flag = 3;
-                    break;
-            }
-
+            e.inode.count--;
+            e.inode.flag = 0;
             e.inode.toDisk(e.iNumber);
+            e = null;
             notify();
             return true;
         }

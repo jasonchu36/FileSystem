@@ -25,18 +25,17 @@ class SuperBlock {
         }
     }
 
-    void sync() {
+    void sync() { // sync superblock contents to disk
         // write back in-memory superblock to disk: SysLib.rawwrite( 0, superblock );
         byte[] superBlock = new byte[Disk.blockSize];
         SysLib.int2bytes(totalBlocks, superBlock, 0);
         SysLib.int2bytes(totalInodes, superBlock, 4);
         SysLib.int2bytes(freeList, superBlock, 8);
         SysLib.rawwrite(0, superBlock);
-        SysLib.cerr("we are in superblock sync\n");
         SysLib.cerr("Superblock syncronized\n");
     }
 
-    void format(int files) {
+    void format(int files) { // files is the number of files to be created
         totalInodes = files;
         for (short i = 0; i < totalInodes; i++) {
             Inode node = new Inode();

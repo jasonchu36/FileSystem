@@ -48,7 +48,6 @@ public class Kernel
     // System thread references
     private static Scheduler scheduler;
     private static Disk disk;
-    private static Cache cache;
 
 	// File System
 	private static FileSystem FileSystem;
@@ -79,10 +78,6 @@ public class Kernel
 		// instantiate and start a disk
 		disk = new Disk( 1000 );
         disk.start( );
-
-		// instantiate a cache memory
-		cache = new Cache( Disk.blockSize, 10 );
-		
 		// instantiate synchronized queues
 		ioQueue = new SyncQueue( );
 		waitQueue = new SyncQueue( scheduler.getMaxThreads( ) );
@@ -157,9 +152,8 @@ public class Kernel
 		    return ERROR;
 		}
 		default: {
-				TCB myFile;
-				if ((myFile = scheduler.getMyTcb()) != null) {
-					FileTableEntry myEntry = myFile.getFtEnt(param);
+				if ((myTcb = scheduler.getMyTcb()) != null) {
+					FileTableEntry myEntry = myTcb.getFtEnt(param);
 					if (myEntry != null) {
 						return FileSystem.read(myEntry, (byte[])args);
 					}
@@ -180,9 +174,8 @@ public class Kernel
 		    System.err.print( (String)args );
 		    break;
 		default: {
-				TCB myFileW;
-				if ((myFileW = scheduler.getMyTcb()) != null) {
-					FileTableEntry myEntry = myFileW.getFtEnt(param);
+				if ((myTcb = scheduler.getMyTcb()) != null) {
+					FileTableEntry myEntry = myTcb.getFtEnt(param);
 					if (myEntry != null) {
 						return FileSystem.write(myEntry, (byte[])args);
 					}
@@ -192,49 +185,45 @@ public class Kernel
 		}
 		return OK;
 	    case CREAD:   // to be implemented in assignment 4
-		return cache.read( param, ( byte[] )args ) ? OK : ERROR;
+		
 	    case CWRITE:  // to be implemented in assignment 4
-		return cache.write( param, ( byte[] )args ) ? OK : ERROR;
+		
 	    case CSYNC:   // to be implemented in assignment 4
-		cache.sync( );
+		
 		return OK;
 	    case CFLUSH:  // to be implemented in assignment 4
-		cache.flush( );
+		
 		return OK;
 	    case OPEN:    // to be implemented in project
-			TCB myOpen;
-			 if ( ( myOpen = scheduler.getMyTcb( ) ) != null ) {
+			 if ( ( myTcb = scheduler.getMyTcb( ) ) != null ) {
                      String[] s = ( String[] )args;
-                     return myOpen.getFd( FileSystem.open( s[0], s[1] ) );
+                     return myTcb.getFd( FileSystem.open( s[0], s[1] ) );
 			 }
                     return ERROR;
 	    case CLOSE:   // to be implemented in project
-			TCB myClose;
-			if ((myClose = scheduler.getMyTcb()) == null) {
+			if ((myTcb = scheduler.getMyTcb()) == null) {
                 return ERROR;
             }
-            final FileTableEntry ftEntC = myClose.getFtEnt(param);
+            final FileTableEntry ftEntC = myTcb.getFtEnt(param);
             if (ftEntC == null || !FileSystem.close(ftEntC)) {
                 return ERROR;
             }
-            if (myClose.returnFd(param) != ftEntC) {
+            if (myTcb.returnFd(param) != ftEntC) {
                 return ERROR;
             }
 			return OK;
 	    case SIZE:    // to be implemented in project
-			TCB mySize;
-			if ((mySize = scheduler.getMyTcb()) != null) {
-				FileTableEntry ftEntS = mySize.getFtEnt(param);
+			if ((myTcb = scheduler.getMyTcb()) != null) {
+				FileTableEntry ftEntS = myTcb.getFtEnt(param);
 				if (ftEntS != null) {
 					return FileSystem.fsize(ftEntS);
 				}
 			}
 			return ERROR;
 	    case SEEK:    // to be implemented in project
-			TCB mySeek;
-			if ((mySeek = scheduler.getMyTcb()) != null) {
+			if ((myTcb = scheduler.getMyTcb()) != null) {
 				int[] seekArgs = (int[]) args;
-				FileTableEntry ftEntS = mySeek.getFtEnt(param);
+				FileTableEntry ftEntS = myTcb.getFtEnt(param);
 				if (ftEntS != null) {
 					return FileSystem.seek(ftEntS, seekArgs[0], seekArgs[1]);
 				}

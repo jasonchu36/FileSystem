@@ -11,7 +11,6 @@ public class FileSystem {
         // read the "/" file from disk
         FileTableEntry dirEnt = this.open("/", "r");
         int dirSize = fsize(dirEnt);
-        System.out.println("dirSize");
         if (dirSize > 0) {
             // directory has some data
             byte[] dirData = new byte[dirSize];
@@ -21,48 +20,50 @@ public class FileSystem {
         close(dirEnt);
     }
 
-    public int read(FileTableEntry ftEnt, byte[] buffer) {
-        if (ftEnt.mode.compareTo("w") == 0 || ftEnt.mode.compareTo("a") == 0) {
+    public int read(FileTableEntry ftEnt, byte[] buffer) { // read from file
+        if (ftEnt == null || (ftEnt.mode == "a") || (ftEnt.mode == "w")) { // check if file is open for reading
             return -1;
         }
-        int bytes = 0;
+        int bytes = 0; 
         int length = buffer.length;
+        int fileSize = fsize(ftEnt);
         synchronized (ftEnt) {
-            while (length > 0 && ftEnt.seekPtr < fsize(ftEnt)) {
+            while (ftEnt.seekPtr < fileSize && length > 0 ) { // while there is still data to read
                 int blockNum = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
                 if (blockNum == -1) {
-                    break;
+                    return bytes;
                 }
                 byte[] block = new byte[Disk.blockSize];
                 SysLib.rawread(blockNum, block);
                 int offset = ftEnt.seekPtr % Disk.blockSize;
-                int read = Math.min(Math.min(Disk.blockSize - offset, length), fsize(ftEnt) - ftEnt.seekPtr);
+                int blockReadLength = Disk.blockSize - offset;
+                int fileReadLength = fileSize - ftEnt.seekPtr;
+                int read = Math.min(Math.min(blockReadLength, length), fileReadLength);
                 System.arraycopy(block, offset, buffer, bytes, read);
+                length -= read;
                 ftEnt.seekPtr += read;
                 bytes += read;
-                length -= read;
+                
             }
             return bytes;
         }
     }
 
     boolean format(final int n) {
-        while (!filetable.fempty()) {
-        }
         superblock.format(n);
         dir = new Directory(superblock.totalInodes);
         filetable = new FileTable(dir);
         return true;
     }
-
-    public int write(FileTableEntry ftEnt, byte[] buffer) {
-        if (ftEnt.mode == "r") {
+   
+    public int write(FileTableEntry ftEnt, byte[] buffer) { // write buffer to file
+        if (ftEnt.mode == "r") { // check if file is open for writing
             return -1;
         }
-        synchronized (ftEnt) {
+        synchronized (ftEnt) { // synchronize file table entry
             int bytes = 0;
             int length = buffer.length;
-            while (length > 0) {
+            while (length > 0) { // while there is still data to write
                 int Block = ftEnt.inode.findTargetBlock(ftEnt.seekPtr);
                 if (Block == -1) {
                     short newPoint = (short) superblock.getFreeBlock();
@@ -80,10 +81,10 @@ public class FileSystem {
                     }
                     Block = newPoint;
                 }
-                byte[] block = new byte[Disk.blockSize];
+                byte[] block = new byte[Disk.blockSize]; // create a new array
                 if (SysLib.rawread(Block, block) == -1) {
                     System.exit(2);
-                }
+                } // read block from disk
                 int offset = ftEnt.seekPtr % Disk.blockSize;
                 int write = Math.min(Disk.blockSize - offset, length);
                 System.arraycopy(buffer, bytes, block, offset, write);
@@ -101,48 +102,44 @@ public class FileSystem {
     }
 
     public int fsize(FileTableEntry ftEnt) {
-        assert (ftEnt != null);
-        return ftEnt.inode.length;
+        synchronized (ftEnt) {
+            return ftEnt.inode.length;
+        }
     }
 
     private boolean deallocAllBlocks(FileTableEntry ftEnt) {
-        for (int i = 0; i < ftEnt.inode.direct.length; i++) {
+        if (ftEnt.inode.count != 1 || ftEnt == null) {
+            return false;
+        }
+        byte[] releasedBlocks = ftEnt.inode.unregisterIndexBlock();
+        if (releasedBlocks != null) {
+            int num = SysLib.bytes2short(releasedBlocks, 0);
+            while (num != -1) {
+                superblock.returnBlock(num);
+            }
+        }
+        for (int i = 0; i < Inode.directSize; i++)
             if (ftEnt.inode.direct[i] != -1) {
-                this.superblock.returnBlock(ftEnt.inode.direct[i]);
+                superblock.returnBlock(ftEnt.inode.direct[i]);
                 ftEnt.inode.direct[i] = -1;
             }
-        }
-        if (ftEnt.inode.indirect != -1) {
-            byte[] indirectBlock = new byte[Disk.blockSize];
-            SysLib.rawread(ftEnt.inode.indirect, indirectBlock);
-            for (int i = 0; i < indirectBlock.length; i += 2) {
-                short blockNum = SysLib.bytes2short(indirectBlock, i);
-                if (blockNum != -1) {
-                    this.superblock.returnBlock(blockNum);
-                }
-            }
-            this.superblock.returnBlock(ftEnt.inode.indirect);
-            ftEnt.inode.indirect = -1;
-        }
-        ftEnt.inode.toDisk(ftEnt.iNumber);
+            ftEnt.inode.toDisk(ftEnt.iNumber);
         return true;
     }
 
-    public FileTableEntry open(String filename, String mode) {
+    public FileTableEntry open(String filename, String mode) { // open file
         FileTableEntry ftEnt = filetable.falloc(filename, mode);
         if (ftEnt == null) {
             return null;
         }
-        if (mode.compareTo("w") == 0) {
-            if (this.deallocAllBlocks(ftEnt) == false) {
-                return null;
-            }
+        if (mode == "w" && this.deallocAllBlocks(ftEnt) == false) {
+            return null;
         }
         return ftEnt;
     }
 
-    public boolean close(FileTableEntry ftEnt) {
-        synchronized (ftEnt) {
+    public boolean close(FileTableEntry ftEnt) { // close file
+        synchronized (ftEnt) { // synchronize file table entry
             ftEnt.count--;
             if (ftEnt.count > 0) {
                 return true;
@@ -151,39 +148,35 @@ public class FileSystem {
         return filetable.ffree(ftEnt);
     }
 
-    public boolean delete(String filename) {
-        FileTableEntry open = open(filename, "w");
+    public boolean delete(String filename) { // delete file
+        FileTableEntry open = open(filename, "w"); // open file
         short iNumber = open.iNumber;
         return close(open) && dir.ifree(iNumber);
     }
 
-    int seek(FileTableEntry ftEnt, int offset, int whence) {
+    int seek(FileTableEntry ftEnt, int offset, int whence) { // seek to offset
         synchronized (ftEnt) {
-            switch (whence) {
-                case 0: // SEEK_SET
-                    if (offset >= 0 && offset <= ftEnt.inode.length) {
-                        ftEnt.seekPtr = offset;
-                        break;
-                    }
-                    return -1;
-                case 1: // SEEK_CUR
-                    if (offset >= 0 && offset + ftEnt.seekPtr <= ftEnt.inode.length) {
-                        ftEnt.seekPtr += offset;
-                        return ftEnt.seekPtr;
-                    }
-                    break;
-                case 2: { // SEEK_END
-                    if (offset <= 0 && offset + ftEnt.inode.length >= 0) {
-                        ftEnt.seekPtr = ftEnt.inode.length + offset;
-                        break;
-                    }
-                    return -1;
-                }
-
-            }
-            return ftEnt.seekPtr;
-        }
-
+            switch(whence) { // check whence
+				case 0:
+                ftEnt.seekPtr = offset;
+					break;
+				case 1:
+                ftEnt.seekPtr += offset;
+					break;
+				case 2:
+                ftEnt.seekPtr = ftEnt.inode.length + offset;
+					break;
+				default:
+					return -1;
+			}
+			if (ftEnt.seekPtr < 0) {
+				ftEnt.seekPtr = 0;
+			}
+			if (ftEnt.seekPtr > ftEnt.inode.length) {
+				ftEnt.seekPtr = ftEnt.inode.length;
+			}
+			return ftEnt.seekPtr;
+		}
     }
 
 }
